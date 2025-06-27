@@ -85,8 +85,14 @@ class MealImporter
         $areas = Area::all();
         $categories = Category::all();
         $ingredients = Ingredient::all();
+        $letters = range('a', 'z');
+        $meals = collect([]);
 
-        $meals = collect($this->client->searchMealsByFirstLetter('a')['meals']);
+        foreach ($letters as $letter) {
+            $fetchedMeals = $this->client->searchMealsByFirstLetter($letter)['meals'] ?? [];
+            $meals = $meals->concat($fetchedMeals);
+        }
+
         $existedMeals = Meal::query()
             ->whereIn('external_id', $meals->pluck('idMeal'))
             ->pluck('external_id')
