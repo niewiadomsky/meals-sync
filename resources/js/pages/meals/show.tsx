@@ -17,7 +17,7 @@ export default function Show({ meal, comments }: ShowProps) {
                 <title>{meal.name}</title>
             </Head>
             <div>
-                <Link href={route('home')} className="text-sm text-gray-200 hover:underline">&laquo; Back to meals</Link>
+                <Link href={route('home')} className="text-sm dark:text-gray-200 hover:underline">&laquo; Back to meals</Link>
             </div>
             <div className="grid grid-cols-4 gap-4">
                 <Card className="col-span-3">
