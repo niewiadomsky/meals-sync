@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Services\ConsoleProgressReporter;
 use App\Services\MealImporter;
 use Illuminate\Console\Command;
 
@@ -26,6 +27,11 @@ class ImportMeals extends Command
      */
     public function handle(MealImporter $importer)
     {
+
+        $progressReporter = new ConsoleProgressReporter($this);
+        $importer->setProgressReporter($progressReporter);
         $importer->import();
+
+        $this->info('Meals imported successfully');
     }
 }
