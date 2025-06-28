@@ -2,10 +2,12 @@
 
 namespace App\Providers;
 
+use App;
 use App\Clients\TheMealDbClient;
 use App\Services\MealImporter;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Support\ServiceProvider;
+use URL;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -29,5 +31,8 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         JsonResource::withoutWrapping();
+        if (!App::environment(['local', 'testing'])) {
+            URL::forceScheme('https');
+        }
     }
 }
