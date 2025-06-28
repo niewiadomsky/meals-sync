@@ -17,7 +17,9 @@ export default function Show({ meal, comments }: ShowProps) {
                 <title>{meal.name}</title>
             </Head>
             <div>
-                <Link href={route('home')} className="text-sm dark:text-gray-200 hover:underline">&laquo; Back to meals</Link>
+                <Link href={route('home')} className="text-sm hover:underline dark:text-gray-200">
+                    &laquo; Back to meals
+                </Link>
             </div>
             <div className="grid grid-cols-4 gap-4">
                 <Card className="col-span-3">
@@ -30,13 +32,14 @@ export default function Show({ meal, comments }: ShowProps) {
                     <CardContent>
                         <p>Area: {meal.area?.name}</p>
                         <p>Category: {meal.category?.name}</p>
+                        <p>Tags: {meal.tags?.join(', ')}</p>
                     </CardContent>
                 </Card>
                 <Card className="py-0">
-                    <img src={meal.thumbnail_url} alt={meal.name} className="w-full h-full object-cover" />
+                    <img src={meal.thumbnail_url} alt={meal.name} className="h-full w-full object-cover" />
                 </Card>
             </div>
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-4">
                 <Card>
                     <CardHeader>
                         <CardTitle>Ingredients</CardTitle>

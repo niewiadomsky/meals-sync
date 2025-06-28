@@ -8,6 +8,7 @@ use App\Models\Area;
 use App\Models\Category;
 use App\Models\Ingredient;
 use App\Models\Meal;
+use DB;
 use Illuminate\Support\Str;
 
 class MealImporter
@@ -52,17 +53,20 @@ class MealImporter
 
         $this->progressReporter?->start("Creating {$newCategories->count()} new categories", $newCategories->count());
 
-        $newCategories->each(function ($category) {
+        $preparedCategories = $newCategories->map(function ($category) {
             $this->progressReporter?->advance();
-            Category::create([
+            return [
                 'name' => $category['strCategory'],
                 'external_id' => $category['idCategory'],
                 'thumbnail_url' => $category['strCategoryThumb'],
                 'description' => $category['strCategoryDescription'],
-            ]);
+            ];
         });
 
+        $affectedRows = Category::insert($preparedCategories->toArray());
         $this->progressReporter?->finish();
+        $this->progressReporter?->log("Inserted {$affectedRows} new categories");
+
     }
 
     public function importAreas()
@@ -86,14 +90,18 @@ class MealImporter
 
         $this->progressReporter?->start("Creating {$newAreas->count()} new areas", $newAreas->count());
 
-        $newAreas->each(function ($area) {
+        $preparedAreas = $newAreas->map(function ($area) {
             $this->progressReporter?->advance();
-            Area::create([
+
+            return [
                 'name' => $area['strArea'],
-            ]);
+            ];
         });
 
+        $affectedRows = Area::insert($preparedAreas->toArray());
         $this->progressReporter?->finish();
+        $this->progressReporter?->log("Inserted {$affectedRows} new areas");
+
     }
 
     public function importIngredients()
@@ -116,16 +124,20 @@ class MealImporter
 
         $this->progressReporter?->start("Creating {$newIngredients->count()} new ingredients", $newIngredients->count());
 
-        $newIngredients->each(function ($ingredient) {
+        $preparedIngredients = $newIngredients->map(function ($ingredient) {
             $this->progressReporter?->advance();
-            Ingredient::create([
+
+            return [
                 'name' => $ingredient['strIngredient'],
                 'external_id' => $ingredient['idIngredient'],
                 'description' => $ingredient['strDescription'],
-            ]);
+            ];
         });
-
+        
+        $affectedRows = Ingredient::insert($preparedIngredients->toArray());
+        
         $this->progressReporter?->finish();
+        $this->progressReporter?->log("Inserted {$affectedRows} new ingredients");
     }
 
     public function importMeals()
@@ -165,8 +177,10 @@ class MealImporter
         $this->progressReporter?->start("Creating {$newMeals->count()} new meals", $newMeals->count());
 
         $newMeals->each(function ($meal) use ($areaModels, $categoryModels, $ingredientModels) {
-            
-            // TODO: can be more optimized by using upsert
+            $tags = Str::of($meal['strTags'])->explode(',');
+
+            DB::beginTransaction();
+            // TODO: can be more optimized by using insert
             $mealModel = Meal::create([
                 'name' => $meal['strMeal'],
                 'external_id' => $meal['idMeal'],
@@ -175,8 +189,10 @@ class MealImporter
                 'video_url' => $meal['strYoutube'],
                 'area_id' => $areaModels->firstWhere('name', $meal['strArea'])->id,
                 'category_id' => $categoryModels->firstWhere('name', $meal['strCategory'])->id,
-                'tags' => Str::of($meal['strTags'])->explode(','),
+                'tags' => $tags->isEmpty() || empty($tags->first()) ? null : $tags->toArray(),
             ]);
+            
+            $ingredients = [];
 
             for ($i = 1; $i <= 20; $i++) {
                 $ingredient = $meal["strIngredient{$i}"];
@@ -192,10 +208,17 @@ class MealImporter
                         $ingredientModels->push($ingredientModel);
                     }
 
-                    $mealModel->ingredients()->attach($ingredientModel->id, ['measure' => $measure]);
+                    $ingredients[] = [
+                        'meal_id' => $mealModel->id,
+                        'ingredient_id' => $ingredientModel->id,
+                        'measure' => $measure,
+                    ];
                 }
             }
-            
+
+            DB::table('ingredient_meal')->insert($ingredients);
+            DB::commit();
+
             $this->progressReporter?->advance();
         });
 

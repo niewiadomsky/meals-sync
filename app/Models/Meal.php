@@ -14,7 +14,15 @@ class Meal extends Model
         'video_url',
         'area_id',
         'category_id',
+        'tags',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'tags' => 'array',
+        ];
+    }
 
     public function area()
     {

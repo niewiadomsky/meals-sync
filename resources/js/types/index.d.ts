@@ -43,6 +43,7 @@ export interface Meal {
     category?: Category;
     ingredients?: Ingredient[];
     comments?: Comment[];
+    tags?: string[];
 }
 
 export interface Area {
