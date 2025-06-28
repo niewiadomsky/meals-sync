@@ -9,7 +9,6 @@ class Ingredient extends Model
     protected $fillable = [
         'name',
         'external_id',
-        'thumbnail_url',
         'description',
     ];
 }

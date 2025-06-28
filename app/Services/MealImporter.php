@@ -7,6 +7,7 @@ use App\Models\Area;
 use App\Models\Category;
 use App\Models\Ingredient;
 use App\Models\Meal;
+use Illuminate\Support\Str;
 
 class MealImporter
 {
@@ -82,9 +83,9 @@ class MealImporter
 
     public function importMeals()
     {
-        $areas = Area::all();
-        $categories = Category::all();
-        $ingredients = Ingredient::all();
+        $areaModels = Area::all();
+        $categoryModels = Category::all();
+        $ingredientModels = Ingredient::all();
         $letters = range('a', 'z');
         $meals = collect([]);
 
@@ -93,29 +94,40 @@ class MealImporter
             $meals = $meals->concat($fetchedMeals);
         }
 
-        $existedMeals = Meal::query()
+        $existedMealModels = Meal::query()
             ->whereIn('external_id', $meals->pluck('idMeal'))
             ->pluck('external_id')
             ->toArray();
 
-        $meals->filter(function ($meal) use ($existedMeals) {
-            return !in_array($meal['idMeal'], $existedMeals);
-        })->each(function ($meal) use ($areas, $categories, $ingredients) {
-            $meal = Meal::create([
+        $meals->filter(function ($meal) use ($existedMealModels) {
+            return !in_array($meal['idMeal'], $existedMealModels);
+        })->each(function ($meal) use ($areaModels, $categoryModels, $ingredientModels) {
+            $mealModel = Meal::create([
                 'name' => $meal['strMeal'],
                 'external_id' => $meal['idMeal'],
                 'instructions' => $meal['strInstructions'],
                 'thumbnail_url' => $meal['strMealThumb'],
                 'video_url' => $meal['strYoutube'],
-                'area_id' => $areas->firstWhere('name', $meal['strArea'])->id,
-                'category_id' => $categories->firstWhere('name', $meal['strCategory'])->id,
+                'area_id' => $areaModels->firstWhere('name', $meal['strArea'])->id,
+                'category_id' => $categoryModels->firstWhere('name', $meal['strCategory'])->id,
+                'tags' => Str::explode(',', $meal['strTags']),
             ]);
 
             for ($i = 1; $i <= 20; $i++) {
                 $ingredient = $meal["strIngredient{$i}"];
                 $measure = $meal["strMeasure{$i}"];
                 if ($ingredient) {
-                    $meal->ingredients()->attach($ingredients->firstWhere('name', $ingredient)->id, ['measure' => $measure]);
+                    $ingredient = Str::title($ingredient);
+                    $ingredientModel = $ingredientModels->firstWhere('name', $ingredient);
+                    
+                    if (!$ingredientModel) {
+                        $ingredientModel = Ingredient::create([
+                            'name' => $ingredient,
+                        ]);
+                        $ingredientModels->push($ingredientModel);
+                    }
+
+                    $mealModel->ingredients()->attach($ingredientModel->id, ['measure' => $measure]);
                 }
             }
         });

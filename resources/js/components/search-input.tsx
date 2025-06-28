@@ -1,6 +1,7 @@
-import { usePage } from '@inertiajs/react';
 import { useMemo, useState } from 'react';
 import { useDebouncedCallback } from 'use-debounce';
+import { Input } from './ui/input';
+import { Label } from './ui/label';
 
 interface SearchInputProps {
     label: string;
@@ -9,16 +10,14 @@ interface SearchInputProps {
 }
 
 export default function SearchInput({ label, placeholder, onSearch }: SearchInputProps) {
-    const url = useMemo(() => new URLSearchParams(window.location.search), []);
+    const url = useMemo(() => new URLSearchParams(window.location.search), [window.location.search]);
     const [search, setSearch] = useState(url.get('search') ?? '');
     const debouncedSearch = useDebouncedCallback(onSearch, 500);
 
     return (
-        <div>
-            <label htmlFor="search" className="block text-sm font-medium text-gray-700">
-                {label}
-            </label>
-            <input
+        <div className="flex flex-col gap-2">
+            <Label htmlFor="search">{label}</Label>
+            <Input
                 type="text"
                 id="search"
                 value={search}
@@ -27,7 +26,6 @@ export default function SearchInput({ label, placeholder, onSearch }: SearchInpu
                     debouncedSearch(e.target.value);
                 }}
                 placeholder={placeholder}
-                className="w-full p-2 border-2 border-gray-800 rounded-md"
             />
         </div>
     );

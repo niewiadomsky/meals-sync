@@ -1,30 +1,35 @@
-import { LucideIcon } from 'lucide-react';
 import type { Config } from 'ziggy-js';
-
 
 export interface SharedData {
     name: string;
     ziggy: Config & { location: string };
+    auth: {
+        user: User;
+    };
     [key: string]: unknown;
 }
 
 export interface PaginatedData<T> {
     data: T[];
-    first_page_url: string;
-    from: number;
-    last_page: number;
-    last_page_url: string;
-    next_page_url: string;
-    path: string;
-    per_page: number;
-    prev_page_url: string;
-    to: number;
-    total: number;
     links: {
-        active: boolean;
-        label: string;
-        url: string | null;
-    }[];
+        first: string | null;
+        last: string | null;
+        next: string | null;
+        prev: string | null;
+    };
+    meta: {
+        from: number;
+        last_page: number;
+        path: string;
+        per_page: number;
+        to: number;
+        total: number;
+        links: {
+            active: boolean;
+            label: string;
+            url: string | null;
+        }[];
+    };
 }
 
 export interface Meal {
@@ -37,6 +42,7 @@ export interface Meal {
     area?: Area;
     category?: Category;
     ingredients?: Ingredient[];
+    comments?: Comment[];
 }
 
 export interface Area {
@@ -50,6 +56,19 @@ export interface Category {
 }
 
 export interface Ingredient {
+    id: number;
+    name: string;
+    measure: string;
+}
+
+export interface Comment {
+    id: number;
+    user: User;
+    content: string;
+    created_at: string;
+}
+
+export interface User {
     id: number;
     name: string;
 }

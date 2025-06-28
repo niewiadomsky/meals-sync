@@ -1,5 +1,7 @@
 import type { PaginatedData } from '@/types';
 import { Link } from '@inertiajs/react';
+import { Pagination as PaginationComponent, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from './ui/pagination';
+import { Fragment } from 'react/jsx-runtime';
 
 interface PaginationProps {
     pagination: PaginatedData<unknown>;
@@ -7,17 +9,24 @@ interface PaginationProps {
 
 export default function Pagination({ pagination }: PaginationProps) {
     return (
-        <div className="flex justify-center gap-2">
-            {pagination.links.map((link) => (
-                <Link
-                    key={link.label}
-                    href={link.url ?? ''}
-                    disabled={!link.url || link.active}
-                    className="rounded-md border-2 border-gray-800 min-w-8 min-h-8 p-2 text-center disabled:cursor-not-allowed disabled:opacity-50 disabled:border-gray-400"
-                >
-                    <span dangerouslySetInnerHTML={{ __html: link.label }} />
-                </Link>
-            ))}
+        <div className="px-16">
+            <PaginationComponent>
+                <PaginationContent>
+                {pagination.meta.links.map((link, index) => (
+                    <Fragment key={link.label}>
+                        {index === 0 && <PaginationPrevious href={link.url ?? ''} disabled={!link.url || link.active} />}
+                        {index === pagination.meta.links.length - 1 && <PaginationNext href={link.url ?? ''} disabled={!link.url || link.active} />}
+                        {index !== 0 && index !== pagination.meta.links.length - 1 && (
+                            <PaginationItem key={link.label}>
+                                <PaginationLink href={link.url ?? ''} disabled={!link.url || link.active}>
+                                    <span dangerouslySetInnerHTML={{ __html: link.label }} />
+                                </PaginationLink>
+                            </PaginationItem>
+                        )}
+                    </Fragment>
+                ))}
+                </PaginationContent>
+            </PaginationComponent>
         </div>
     );
 }
