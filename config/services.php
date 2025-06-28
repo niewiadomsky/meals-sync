@@ -39,4 +39,9 @@ return [
         'base_url' => env('THEMEALDB_BASE_URL', 'https://www.themealdb.com/api/json/v1/1/'),
     ],
 
+    'umami' => [
+        'base_url' => env('UMAMI_BASE_URL', null),
+        'website_id' => env('UMAMI_WEBSITE_ID', null),
+    ],
+
 ];
