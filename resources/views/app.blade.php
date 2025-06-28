@@ -43,8 +43,8 @@
         @viteReactRefresh
         @vite(['resources/js/app.tsx', "resources/js/pages/{$page['component']}.tsx"])
         @inertiaHead
-        @if (config('services.umami.base_url') && config('services.umami.website_id'))
-            <script defer src="{{ config('services.umami.base_url') }}" data-website-id="{{ config('services.umami.website_id') }}"></script>
+        @if (config('services.umami.script_url') && config('services.umami.website_id'))
+            <script defer src="{{ config('services.umami.script_url') }}" data-website-id="{{ config('services.umami.website_id') }}"></script>
         @endif
     </head>
     <body class="font-sans antialiased">

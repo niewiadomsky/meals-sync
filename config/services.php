@@ -40,7 +40,7 @@ return [
     ],
 
     'umami' => [
-        'base_url' => env('UMAMI_BASE_URL', null),
+        'script_url' => env('UMAMI_SCRIPT_URL', null),
         'website_id' => env('UMAMI_WEBSITE_ID', null),
     ],
 
