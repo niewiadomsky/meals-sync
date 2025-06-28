@@ -56,11 +56,4 @@ class TheMealDbClient
             'i' => 'list',
         ])->json();
     }
-
-    public function getMeals()
-    {
-        return $this->client->get("search.php", [
-            's' => 'list',
-        ])->json();
-    }
 }

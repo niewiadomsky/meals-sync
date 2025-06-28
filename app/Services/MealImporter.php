@@ -42,18 +42,18 @@ class MealImporter
             ->pluck('external_id')
             ->toArray();
 
-        $newCategories = $categories->filter(function ($category) use ($existedCategories) {
+        $categoriesToInsert = $categories->filter(function ($category) use ($existedCategories) {
             return !in_array($category['idCategory'], $existedCategories);
         });
 
-        if ($newCategories->isEmpty()) {
+        if ($categoriesToInsert->isEmpty()) {
             $this->progressReporter?->log('No new categories to create');
             return;
         }
 
-        $this->progressReporter?->start("Creating {$newCategories->count()} new categories", $newCategories->count());
+        $this->progressReporter?->start("Creating {$categoriesToInsert->count()} new categories", $categoriesToInsert->count());
 
-        $preparedCategories = $newCategories->map(function ($category) {
+        $preparedCategories = $categoriesToInsert->map(function ($category) {
             $this->progressReporter?->advance();
             return [
                 'name' => $category['strCategory'],
@@ -79,18 +79,18 @@ class MealImporter
             ->pluck('name')
             ->toArray();
 
-        $newAreas = $areas->filter(function ($area) use ($existedAreas) {
+        $areasToInsert = $areas->filter(function ($area) use ($existedAreas) {
             return !in_array($area['strArea'], $existedAreas);
         });
 
-        if ($newAreas->isEmpty()) {
+        if ($areasToInsert->isEmpty()) {
             $this->progressReporter?->log('No new areas to create');
             return;
         }
 
-        $this->progressReporter?->start("Creating {$newAreas->count()} new areas", $newAreas->count());
+        $this->progressReporter?->start("Creating {$areasToInsert->count()} new areas", $areasToInsert->count());
 
-        $preparedAreas = $newAreas->map(function ($area) {
+        $preparedAreas = $areasToInsert->map(function ($area) {
             $this->progressReporter?->advance();
 
             return [
@@ -113,18 +113,18 @@ class MealImporter
             ->pluck('external_id')
             ->toArray();
 
-        $newIngredients = $ingredients->filter(function ($ingredient) use ($existedIngredients) {
+        $ingredientsToInsert = $ingredients->filter(function ($ingredient) use ($existedIngredients) {
             return !in_array($ingredient['idIngredient'], $existedIngredients);
         });
 
-        if ($newIngredients->isEmpty()) {
+        if ($ingredientsToInsert->isEmpty()) {
             $this->progressReporter?->log('No new ingredients to create');
             return;
         }
 
-        $this->progressReporter?->start("Creating {$newIngredients->count()} new ingredients", $newIngredients->count());
+        $this->progressReporter?->start("Creating {$ingredientsToInsert->count()} new ingredients", $ingredientsToInsert->count());
 
-        $preparedIngredients = $newIngredients->map(function ($ingredient) {
+        $preparedIngredients = $ingredientsToInsert->map(function ($ingredient) {
             $this->progressReporter?->advance();
 
             return [
@@ -145,54 +145,27 @@ class MealImporter
         $areaModels = Area::all();
         $categoryModels = Category::all();
         $ingredientModels = Ingredient::all();
-        $letters = range('a', 'z');
-        
-        // Start progress for fetching meals
-        $this->progressReporter?->start('Fetching Meals by Letter', count($letters));
-        
-        $meals = collect([]);
-        foreach ($letters as $letter) {
-            $this->progressReporter?->setMessage("Fetching meals starting with '{$letter}'");
-            $fetchedMeals = $this->client->searchMealsByFirstLetter($letter)['meals'] ?? [];
-            $meals = $meals->concat($fetchedMeals);
-            $this->progressReporter?->advance();
-        }
-        
-        $this->progressReporter?->finish();
+        $fetchedMeals = $this->fetchAllMeals();
 
         $existedMealModels = Meal::query()
-            ->whereIn('external_id', $meals->pluck('idMeal'))
+            ->whereIn('external_id', $fetchedMeals->pluck('idMeal'))
             ->pluck('external_id')
             ->toArray();
 
-        $newMeals = $meals->filter(function ($meal) use ($existedMealModels) {
+        $mealsToInsert = $fetchedMeals->filter(function ($meal) use ($existedMealModels) {
             return !in_array($meal['idMeal'], $existedMealModels);
         });
 
-        if ($newMeals->isEmpty()) {
+        if ($mealsToInsert->isEmpty()) {
             $this->progressReporter?->log('No new meals to create');
             return;
         }
 
-        $this->progressReporter?->start("Creating {$newMeals->count()} new meals", $newMeals->count());
+        $ingredientsForMeals = [];
 
-        $newMeals->each(function ($meal) use ($areaModels, $categoryModels, $ingredientModels) {
-            $tags = Str::of($meal['strTags'])->explode(',');
+        $this->progressReporter?->start("Creating {$mealsToInsert->count()} new meals", $mealsToInsert->count());
 
-            DB::beginTransaction();
-            // TODO: can be more optimized by using insert
-            $mealModel = Meal::create([
-                'name' => $meal['strMeal'],
-                'external_id' => $meal['idMeal'],
-                'instructions' => $meal['strInstructions'],
-                'thumbnail_url' => $meal['strMealThumb'],
-                'video_url' => $meal['strYoutube'],
-                'area_id' => $areaModels->firstWhere('name', $meal['strArea'])->id,
-                'category_id' => $categoryModels->firstWhere('name', $meal['strCategory'])->id,
-                'tags' => $tags->isEmpty() || empty($tags->first()) ? null : $tags->toArray(),
-            ]);
-            
-            $ingredients = [];
+        $preparedMeals = $mealsToInsert->map(function ($meal) use ($areaModels, $categoryModels, $ingredientModels, &$ingredientsForMeals) {
 
             for ($i = 1; $i <= 20; $i++) {
                 $ingredient = $meal["strIngredient{$i}"];
@@ -208,20 +181,64 @@ class MealImporter
                         $ingredientModels->push($ingredientModel);
                     }
 
-                    $ingredients[] = [
-                        'meal_id' => $mealModel->id,
+                    $ingredientsForMeals[$meal['idMeal']][] = [
                         'ingredient_id' => $ingredientModel->id,
                         'measure' => $measure,
                     ];
                 }
             }
 
-            DB::table('ingredient_meal')->insert($ingredients);
-            DB::commit();
-
+            $tags = Str::of($meal['strTags'])->explode(',');
             $this->progressReporter?->advance();
+
+            return [
+                'name' => $meal['strMeal'],
+                'external_id' => $meal['idMeal'],
+                'instructions' => $meal['strInstructions'],
+                'thumbnail_url' => $meal['strMealThumb'],
+                'video_url' => $meal['strYoutube'],
+                'area_id' => $areaModels->firstWhere('name', $meal['strArea'])->id,
+                'category_id' => $categoryModels->firstWhere('name', $meal['strCategory'])->id,
+                'tags' => $tags->isEmpty() || empty($tags->first()) ? null : $tags->toJson(),
+            ];
         });
+        
+        Meal::insert($preparedMeals->toArray());
+        $this->progressReporter?->finish();
+
+        $insertedMeals = Meal::whereIn('external_id', $mealsToInsert->pluck('idMeal'))->get();
+        
+        $this->progressReporter?->start("Attaching ingredients to {$insertedMeals->count()} meals", $insertedMeals->count());
+        
+        $preparedIngredients = $insertedMeals->map(function ($meal) use ($ingredientsForMeals) {
+            $this->progressReporter?->advance();
+            return array_map(function ($ingredient) use ($meal) {
+                return [
+                    'meal_id' => $meal->id,
+                    ...$ingredient,
+                ];
+            }, $ingredientsForMeals[$meal->external_id]);
+        })->flatten(1);
+
+        DB::table('ingredient_meal')->insert($preparedIngredients->toArray());
+        $this->progressReporter?->finish();
+    }
+
+    protected function fetchAllMeals()
+    {
+        $letters = range('a',  'z');
+        $this->progressReporter?->start('Fetching Meals by Letter', count($letters));
+        $meals = collect([]);
+
+        foreach ($letters as $letter) {
+            $this->progressReporter?->setMessage("Fetching meals starting with '{$letter}'");
+            $fetchedMeals = $this->client->searchMealsByFirstLetter($letter)['meals'] ?? [];
+            $meals = $meals->concat($fetchedMeals);
+            $this->progressReporter?->advance();
+        }
 
         $this->progressReporter?->finish();
+
+        return $meals;
     }
 }
