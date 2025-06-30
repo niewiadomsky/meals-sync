@@ -20,10 +20,10 @@ class MealResource extends JsonResource
             'thumbnail_url' => $this->thumbnail_url,
             'tags' => $this->tags,
             'instructions' => $this->instructions,
-            'area' => $this->whenLoaded('area', AreaResource::make($this->area)),
-            'category' => $this->whenLoaded('category', CategoryResource::make($this->category)),
-            'ingredients' => $this->whenLoaded('ingredients', MealIngredientResource::collection($this->ingredients)),
-            'comments' => $this->whenLoaded('comments', CommentResource::collection($this->comments)),
+            'area' => AreaResource::make($this->whenLoaded('area')),
+            'category' => CategoryResource::make($this->whenLoaded('category')),
+            'ingredients' => MealIngredientResource::collection($this->whenLoaded('ingredients')),
+            'comments' => CommentResource::collection($this->whenLoaded('comments')),
         ];
     }
 }
